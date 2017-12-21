@@ -1,0 +1,135 @@
+1.	Points Table: Team Standings in different leagues in different seasons-   This table will give a glimpse of overall season with each team's performance. Team's ranking with key performance parameters will be shown when we put the season and league's name in the global variable.
+
+2.	Player Statistics: This code will give the key player's performance parameter which will help in judging a player's ability.
+
+3.	Stadiums: This will help us in finding the key attributes of a stadium and give us interesting facts about the biggest stadium in Europe, which stadium is fully occupied and in which European city it is situated.
+
+
+*********************CODE************************
+
+1.	Points Table: Team Standings in different leagues in different seasons-   This table will give a glimpse of overall season with each team's performance. Team's ranking with key performance parameters will be shown when we put the season and league's name in the global variable.
+
+1.1.	Code
+
+set @league := 'English Prem League';
+set @season := '2015-16';
+
+select *,(3*WIN+Draw) as Points
+from
+(
+select M.teamname,M.seasonyear,M.leaguename,
+home_matches+away_matches as Matches,
+Home_wins+away_wins as WIN,
+Home_loss+away_loss as Loss,
+Home_draw+away_draw as Draw,
+home_goals_scored+away_goals_scored as Goal_Scored,
+home_goals_conceded+away_goals_conceded as Goal_conceded,
+(home_goals_scored+away_goals_scored)-(home_goals_conceded+away_goals_conceded) as Goal_Difference
+from 
+
+(
+select a.teamname,c.seasonyear,d.leaguename,
+count(distinct b.match_id) as home_matches,
+count(distinct case when homescore>awayscore then b.match_id else null end) as Home_wins,
+count(distinct case when homescore<awayscore then b.match_id else null end) as Home_loss,
+count(distinct case when homescore=awayscore then b.match_id else null end) as Home_draw,
+sum(HomeScore) as home_goals_scored,
+sum(awayScore) as home_goals_conceded,
+sum(HomeScore)-sum(awayScore) as home_goal_difference
+
+from team as a
+left join match_level as b
+on a.TEAMID=b.HomeTeamID
+left join season as c
+on b.seasonid=c.SeasonID
+left join league as d
+on b.leagueid=d.LeagueID
+where seasonyear= @season
+and LeagueName= @league
+group by 1,2
+order by 5 desc) as M
+
+left join 
+(
+select a.teamname,c.seasonyear,d.leaguename,
+count(distinct b.match_id) as away_matches,
+count(distinct case when awayscore>homescore then b.match_id else null end) as Away_wins,
+count(distinct case when awayscore<homescore then b.match_id else null end) as Away_loss,
+count(distinct case when awayscore=homescore then b.match_id else null end) as Away_draw,
+sum(AwayScore) as away_goals_scored,
+sum(homeScore) as away_goals_conceded,
+sum(AwayScore)-sum(homeScore) as away_goal_difference
+
+from team as a
+left join match_level as b
+on a.TEAMID=b.AwayTeamID
+left join season as c
+on b.seasonid=c.SeasonID
+left join league as d
+on b.leagueid=d.LeagueID
+where seasonyear= @season
+and LeagueName= @league
+group by 1,2
+order by 5 desc) as N
+on M.teamname=N.teamname
+and M.seasonyear=N.seasonyear
+and M.leaguename=N.leaguename
+) as P
+order by points desc
+
+
+
+
+2.	Player Statistics: This code will give the key player's performance parameter which will help in judging a player's ability.
+
+2.1.	Code
+
+select *,
+
+round(Goals_2015_16*100/shots_2015_16,2) as accuracy_2015_16,
+round(Goals_2016_17*100/shots_2016_17,2) as accuracy_2016_17
+
+from(
+
+select playername,
+sum(totalgoals) as TotalGoals,
+sum(case when seasonyear='2015-16' then totalgoals else null end) as Goals_2015_16,
+sum(case when seasonyear='2016-17' then totalgoals else null end) as Goals_2016_17,
+
+sum(case when seasonyear='2015-16' then assist else null end) as assist_2015_16,
+sum(case when seasonyear='2016-17' then assist else null end) as assist_2016_17,
+
+sum(case when seasonyear='2015-16' then totalshots else null end) as shots_2015_16,
+sum(case when seasonyear='2016-17' then totalshots else null end) as shots_2016_17
+
+from (
+
+select a.scoreid,a.player_id,d.playername,a.match_id,a.totalshots,a.totalgoals,a.assist,
+b.seasonid,c.seasonyear,c.playeroftheseason,b.hometeamid,b.awayteamid
+from playermatch a
+left join match_level b
+on a.Match_ID=b.match_ID
+left join season as c
+on b.seasonID=c.SeasonID
+left join player as d
+on a.Player_ID=d.Player_ID
+group by a.scoreid,a.player_id,d.playername,a.match_id,a.totalshots,a.totalgoals,a.assist,
+b.seasonid,c.seasonyear,c.playeroftheseason,b.hometeamid,b.awayteamid) as M
+
+group by 1
+order by TotalGoals desc) as N
+
+
+
+3.	Stadiums: This will help us in finding the key attributes of a stadium and give us interesting facts about the biggest stadium in Europe, which stadium is fully occupied and in which European city it is situated.
+
+3.1.	Code
+
+select a.staid,a.staname,a.stacapacity,
+a.staCountry ,a.StaClubs,
+round(avg(b.attendance),0) as attendance
+from stadium as a
+left join match_level as b
+on a.staid=b.staid
+group by 1,2,3,4,5
+order by 6 desc
