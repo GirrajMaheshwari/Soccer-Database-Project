@@ -1,0 +1,21 @@
+CREATE TABLE `league` (
+`LeagueID` varchar(15) NOT NULL,
+`LeagueName` varchar(255) DEFAULT NULL,
+`LeagueNation` varchar(255) DEFAULT NULL,
+PRIMARY KEY (`LeagueID`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8;
+
+CREATE TABLE `team_league_season` (
+  `TLSID` varchar(15) NOT NULL,
+  `LeagueID` varchar(15) DEFAULT NULL,
+  `SeasonID` varchar(15) DEFAULT NULL,
+  `TEAMID` varchar(15) DEFAULT NULL,
+  `TeamRanking` varchar(15) DEFAULT NULL,
+  PRIMARY KEY (`TLSID`),
+  KEY `fk_TLSteamid` (`TEAMID`),
+  KEY `fk_TLSleagueid` (`LeagueID`),
+  KEY `fk_TLSseasonID` (`SeasonID`),
+  CONSTRAINT `fk_TLSleagueid` FOREIGN KEY (`LeagueID`) REFERENCES `league` (`LeagueID`),
+  CONSTRAINT `fk_TLSseasonID` FOREIGN KEY (`SeasonID`) REFERENCES `season` (`SeasonID`),
+  CONSTRAINT `fk_TLSteamid` FOREIGN KEY (`TEAMID`) REFERENCES `team` (`TEAMID`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8;
